@@ -30,3 +30,11 @@ exec journalctl -o json "$@" | journalfields
 
 [logrus]: https://github.com/sirupsen/logrus
 [journalhook]: https://github.com/wercker/journalhook
+
+
+# Developer Notes
+I originally wanted to just call `journalctl` from within the main program.
+The problem I ran into was that `journalctl` seemed like it was
+checking its own calling name and trying to match it with some known
+program names.
+It was erroring out with some "Failed to match name blahhhh".
