@@ -13,7 +13,7 @@ to view the fields with the messages they are attached to.
 
 ## The most basic usage.
 ```bash
-journalctl --user -o json | jounralfields
+journalctl -o json --user | journalfield
 ```
 
 ## Using a wrapper script
@@ -25,7 +25,7 @@ output mode and, and pipe all output to journalfields.
 ```bash
 #!/bin/bash
 
-exec journalctl -o json "$@" | journalfields
+exec journalctl -o json "$@" | journalfield
 ```
 
 [logrus]: https://github.com/sirupsen/logrus
