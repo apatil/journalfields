@@ -1,5 +1,11 @@
 #!/bin/bash
+# This script calls journalctl with the json output format and pipes it
+# to journalfields.
+# * Arguments before '--' are passed to journalctl
+# * Arguments after '--' are passed to journalfields (the selected fields)
 
+# This should probably be represented are an absolute path, so that you
+# can call thiis with sudo
 JOURNALFIELDS=journalfields
 
 JOURNALCTL_ARGS=( )
