@@ -11,28 +11,70 @@ to view the fields with the messages they are attached to.
 Using native journald fields has the advantage that you can search across
 multiple services for a field with certain values.
 
+# Grab it
+```bash
+go get github.com/linux4life798/journalfields
+```
+
 # Example Usage
 
-## The most basic usage.
+## The most basic usage
 ```bash
-journalctl -o json --user | journalfield
+journalctl -o json --user | journalfields
 ```
 
-## Using a wrapper script
+## Basic usage with field selection
+Say your service, called `lorawan`, logs with many fields, but you are only
+interested in the `DEVEUI` and `APPID` fields.
 
-You could make the following wrapper script for journalctl and jounalfields.
-The following script will pass all arguments to journalctl, enable json
-output mode and, and pipe all output to journalfields.
+```bash
+journalctl -o json -u lorawan | journalfields DEVEUI APPID
+```
 
+## Using the wrapper script
+
+I have included a wrapper script for `journalctl` and `jounalfields`,
+called [journalctlf](journalctlf).
+
+* It passes all arguments before a `--` to `journalctl`
+* It passes all arguments after `--`, as fields, to `journalfields`
+* It enables journalctl's json output mode and pipes all output to journalfields
+
+To acomplish the same result as the previous use case, you could do the following:
+```bash
+journalctlf -u lorawan -- DEVEUI APPID
+```
+
+The following is from the [journalctlf](journalctlf) wrapper script:
 ```bash
 #!/bin/bash
+# This script calls journalctl with the json output format and pipes it
+# to journalfields.
+# * Arguments before '--' are passed to journalctl
+# * Arguments after '--' are passed to journalfields (the selected fields)
 
-exec journalctl -o json "$@" | journalfield
+# This should probably be represented are an absolute path, so that you
+# can call thiis with sudo
+JOURNALFIELDS=journalfields
+
+JOURNALCTL_ARGS=( )
+FIELDS=( )
+
+# Split arguments given at the --
+for arg; do
+	shift
+	if [ "$arg" = "--" ]; then
+		break
+	fi
+
+	JOURNALCTL_ARGS+=( "$arg" )
+done
+
+FIELDS=( "$@" )
+
+echo exec journalctl -o json "${JOURNALCTL_ARGS[@]}" \| $JOURNALFIELDS $FIELDS
+exec journalctl -o json "${JOURNALCTL_ARGS[@]}" | $JOURNALFIELDS $FIELDS
 ```
-
-[logrus]: https://github.com/sirupsen/logrus
-[journalhook]: https://github.com/wercker/journalhook
-
 
 # Developer Notes
 I originally wanted to just call `journalctl` from within the main program.
@@ -40,3 +82,7 @@ The problem I ran into was that `journalctl` seemed like it was
 checking its own calling name and trying to match it with some known
 program names.
 It was erroring out with some "Failed to match name blahhhh".
+
+
+[logrus]: https://github.com/sirupsen/logrus
+[journalhook]: https://github.com/wercker/journalhook
