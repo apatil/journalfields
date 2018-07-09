@@ -55,7 +55,7 @@ The following is from the [journalctlf](journalctlf) wrapper script:
 # * Arguments after '--' are passed to journalfields (the selected fields)
 
 # This should probably be represented are an absolute path, so that you
-# can call thiis with sudo
+# can call this script with sudo
 JOURNALFIELDS=journalfields
 
 JOURNALCTL_ARGS=( )
