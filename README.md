@@ -8,6 +8,8 @@ This is specifically useful for projects that log extra fields using
 The extra fields feature in logrus is extremely useful, but for some reason
 journalctl likes to hide those extra fields and make it comically difficult
 to view the fields with the messages they are attached to.
+Using native journald fields has the advantage that you can search across
+multiple services for a field with certain values.
 
 # Example Usage
 
