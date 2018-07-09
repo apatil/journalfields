@@ -73,8 +73,8 @@ done
 
 FIELDS=( "$@" )
 
-echo exec journalctl -o json "${JOURNALCTL_ARGS[@]}" \| $JOURNALFIELDS $FIELDS
-exec journalctl -o json "${JOURNALCTL_ARGS[@]}" | $JOURNALFIELDS $FIELDS
+echo exec journalctl -o json "${JOURNALCTL_ARGS[@]}" \| $JOURNALFIELDS "${FIELDS[@]}"
+exec journalctl -o json "${JOURNALCTL_ARGS[@]}" | $JOURNALFIELDS "${FIELDS[@]}"
 ```
 
 ## Filter by field using the wrapper script
