@@ -1,3 +1,4 @@
+// This program reads journalctl json output from stdin
 package main
 
 import (
@@ -13,16 +14,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	fieldsRemoved = [...]string{
-		"MESSAGE",
-		"MESSAGE_ID",
-		"PRIORITY",
-		"SYSLOG_FACILITY",
-		"SYSLOG_IDENTIFIER",
-		"SYSLOG_PID",
-	}
-)
+// ignoredFields indicates the non _ fields that should not be printed
+var ignoredFields = [...]string{
+	"MESSAGE",
+	"MESSAGE_ID",
+	"PRIORITY",
+	"SYSLOG_FACILITY",
+	"SYSLOG_IDENTIFIER",
+	"SYSLOG_PID",
+}
 
 // isIn returns true if `str` matches one of the strings in `strArr``
 func isIn(str string, strArr []string) bool {
@@ -82,7 +82,7 @@ func main() {
 				continue
 			}
 
-			if isIn(k, fieldsRemoved[:]) {
+			if isIn(k, ignoredFields[:]) {
 				continue
 			}
 
