@@ -11,6 +11,18 @@ JOURNALFIELDS=journalfields
 JOURNALCTL_ARGS=( )
 FIELDS=( )
 
+# Check for help flags
+for arg; do
+	case $arg in
+		-h|--help)
+			echo "Usage: journalctlf [ARGUMENT_FOR_JOURNALCTL]... [--] [ARGUMENT_FOR_JOURNALFIELDS]..."
+			echo "This is a wrapper for journalctl with journalfields."
+			echo "Please see the journalctl and journalfield's help message"
+			exit 0
+			;;
+	esac
+done
+
 # Split arguments given at the --
 for arg; do
 	shift
