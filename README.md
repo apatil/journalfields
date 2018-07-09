@@ -1,5 +1,6 @@
 # JournalFields
-This utility pretty prints journald messages with extra fields inline.
+This utility pretty prints journald messages with extra
+[fields][journald-fields] inline.
 It uses [logrus][logrus] to reprint the log entries with the extra fields
 visible inline.
 
@@ -76,6 +77,54 @@ echo exec journalctl -o json "${JOURNALCTL_ARGS[@]}" \| $JOURNALFIELDS $FIELDS
 exec journalctl -o json "${JOURNALCTL_ARGS[@]}" | $JOURNALFIELDS $FIELDS
 ```
 
+## Filter by field using the wrapper script
+
+Here is where the power of journald's fields really comes into play.
+
+Say you want to show all log entries from that same `lorawan` service
+that have the field `DEVEUI` set to `1122334455667788`.
+Additionally, you want to show the same `DEVEUI` and `APPID` fields.
+
+You could do the following:
+```bash
+journalctlf -u lorawan DEVEUI=1122334455667788 -- DEVEUI APPID
+```
+
+## Filter by field across multiple service using the wrapper script
+
+Journalctl even allows you to filter by a given set of fields across all
+logged content (from all services).
+
+Say you have a group of systemd services that all use the common field `DEVEUI`
+in their logged messages.
+By simply dropping the `-u lorawan` from the previous use case, you can
+search for all log entries that have the `DEVEUI` set to `1122334455667788`.
+
+You could do the following:
+```bash
+journalctlf DEVEUI=1122334455667788 -- DEVEUI APPID
+```
+
+# Using this tool in your workflow
+
+As I mentioned above, this tool really comes into action when you start using
+the native journal logging interface(or syslog compatibility interface), where
+optional fields can be given.
+This aligns well Go's [logrus][logrus] library, where fields are prominent,
+and very useful for debugging.
+The only problem is that when you start using the logrus native
+journald interface hook, [journalhook][journalhook], those pretty fields that
+you could easily read before become hidden in journalctl.
+I have yet to find the right combination of arguments to have journalctl
+spit out those precious fields on the same line as the message.
+Since people, including myself, really like the output format of
+[logrus][logrus], I have decided to make a tool that is capable of
+re-interpreting the journald logs as logrus Entries and printing them out in
+colorful logrus style.
+
+JournalFields gives you the feeling that the log messages were printed
+directly from logrus at the console.
+
 # Developer Notes
 I originally wanted to just call `journalctl` from within the main program.
 The problem I ran into was that `journalctl` seemed like it was
@@ -86,3 +135,4 @@ It was erroring out with some "Failed to match name blahhhh".
 
 [logrus]: https://github.com/sirupsen/logrus
 [journalhook]: https://github.com/wercker/journalhook
+[journald-fields]: https://www.freedesktop.org/software/systemd/man/systemd.journal-fields.html
