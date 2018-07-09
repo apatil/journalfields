@@ -1,5 +1,21 @@
-#!/bin/bash -x
+#!/bin/bash
 
 JOURNALFIELDS=journalfields
 
-exec journalctl -o json "$@" | $JOURNALFIELDS
+JOURNALCTL_ARGS=( )
+FIELDS=( )
+
+# Split arguments given at the --
+for arg; do
+	shift
+	if [ "$arg" = "--" ]; then
+		break
+	fi
+
+	JOURNALCTL_ARGS+=( "$arg" )
+done
+
+FIELDS=( "$@" )
+
+echo exec journalctl -o json "${JOURNALCTL_ARGS[@]}" \| $JOURNALFIELDS $FIELDS
+exec journalctl -o json "${JOURNALCTL_ARGS[@]}" | $JOURNALFIELDS $FIELDS
