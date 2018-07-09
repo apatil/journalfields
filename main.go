@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/coreos/go-systemd/journal"
 
@@ -14,13 +16,15 @@ import (
 var (
 	fieldsRemoved = [...]string{
 		"MESSAGE",
+		"MESSAGE_ID",
 		"PRIORITY",
 		"SYSLOG_FACILITY",
 		"SYSLOG_IDENTIFIER",
-		// "_SYSTEMD_UNIT",
+		"SYSLOG_PID",
 	}
 )
 
+// isIn returns true if `str` matches one of the strings in `strArr``
 func isIn(str string, strArr []string) bool {
 	for _, v := range strArr {
 		if v == str {
@@ -30,21 +34,46 @@ func isIn(str string, strArr []string) bool {
 	return false
 }
 
+// usToTime converts number of microseconds since epoch to a proper time.Time
+func usToTime(timestampUs uint64) time.Time {
+	tsUs := time.Microsecond * time.Duration(timestampUs)
+	tsS := tsUs.Truncate(time.Second)
+	tsUs -= tsS
+	return time.Unix(int64(tsS.Seconds()), int64(tsUs.Nanoseconds()))
+}
+
 func main() {
 	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	logfmt := logrus.TextFormatter{
+		FullTimestamp: true,
+	}
 
 	lines := bufio.NewScanner(os.Stdin)
 	for lines.Scan() {
-		var jFields map[string]string
-		if err := json.Unmarshal(lines.Bytes(), &jFields); err != nil {
-			log.Fatalf("Failed to unmarshal JSON: %v", err)
+		var jFields map[string]interface{} // could be bytes
+		line := lines.Bytes()
+		if err := json.Unmarshal(line, &jFields); err != nil {
+			log.Fatalf("Failed to unmarshal JSON (%s): %v", string(line), err)
 		}
-		priority, err := strconv.Atoi(jFields["PRIORITY"])
+		// PRIORITY can actually be nil -- use default level
+		if jFields["PRIORITY"] == nil {
+			jFields["PRIORITY"] = "-1"
+		}
+		priority, err := strconv.Atoi(jFields["PRIORITY"].(string))
 		if err != nil {
 			log.Fatalf("Failed to parse priority: %v", err)
 		}
-		message := jFields["MESSAGE"]
-		// unit := jFields["_SYSTEMD_UNIT"]
+
+		command := jFields["_COMM"]
+		message := fmt.Sprint(jFields["MESSAGE"])
+
+		timestampUsStr := jFields["__REALTIME_TIMESTAMP"].(string)
+		timestampUs, err := strconv.ParseUint(timestampUsStr, 10, 64)
+		if err != nil {
+			log.Fatalf("Failed to parse timestamp to uint64: %v", err)
+		}
+		timestamp := usToTime(timestampUs)
 
 		lFields := make(logrus.Fields)
 		for k, v := range jFields {
@@ -60,7 +89,14 @@ func main() {
 			lFields[k] = v
 		}
 
+		// We need to link the logentry to a real Logger to allow checking
+		// for a terminal and pretty printing
+		logentry := log.WithFields(lFields)
+		logentry.Time = timestamp
+		logentry.Message = message
+
 		/*
+			From the journalhook library:
 			logrus.DebugLevel: journal.PriDebug,
 			logrus.InfoLevel:  journal.PriInfo,
 			logrus.WarnLevel:  journal.PriWarning,
@@ -68,29 +104,35 @@ func main() {
 			logrus.FatalLevel: journal.PriCrit,
 			logrus.PanicLevel: journal.PriEmerg,
 		*/
-
-		logentry := log.WithFields(lFields)
 		switch journal.Priority(priority) {
 		case journal.PriDebug:
-			logentry.Debug(message)
+			logentry.Level = logrus.DebugLevel
 		case journal.PriInfo:
-			logentry.Info(message)
+			logentry.Level = logrus.InfoLevel
 		case journal.PriWarning:
-			logentry.Warn(message)
+			logentry.Level = logrus.WarnLevel
 		case journal.PriErr:
-			logentry.Error(message)
+			logentry.Level = logrus.ErrorLevel
 		case journal.PriCrit:
-			// We need a way to print Fatal and Panic
-			// messages without killing the program
-			// logentry.Fatal(message)
-			logentry.Error(message)
+			logentry.Level = logrus.FatalLevel
 		case journal.PriEmerg:
-			// logentry.Panic(message)
-			logentry.Error(message)
+			logentry.Level = logrus.PanicLevel
+		// default is for the items that do not have PRIORITY fields
 		default:
-			logentry.Print(message)
+			logentry.Level = logrus.InfoLevel
 		}
 
+		fmtBuf, err := logfmt.Format(logentry)
+		if err != nil {
+			log.Fatalf("Failed to format logentry: %v", err)
+		}
+
+		buf := []byte(fmt.Sprint(command, " "))
+		buf = append(buf, fmtBuf...)
+
+		if _, err := os.Stdout.Write(buf); err != nil {
+			log.Fatalf("Failed to write formatted logentry: %v", err)
+		}
 	}
 
 	if err := lines.Err(); err != nil {
