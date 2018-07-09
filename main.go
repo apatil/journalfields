@@ -53,12 +53,10 @@ func main() {
 	}
 
 	// Search for help flag
-	for _, arg := range os.Args {
-		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: journalctl -o json | journalfields [SELECT_FIELDS_TO_SHOW...]")
-			fmt.Println("JournalFields is a simple program that reprints journalctl log entries with their hidden fields")
-			os.Exit(0)
-		}
+	if isIn("-h", os.Args) || isIn("--help", os.Args) {
+		fmt.Println("Usage: journalctl -o json | journalfields [SELECT_FIELDS_TO_SHOW...]")
+		fmt.Println("JournalFields is a simple program that reprints journalctl log entries with their hidden fields")
+		os.Exit(0)
 	}
 
 	// Grab/parse selected fields to show from arguments
