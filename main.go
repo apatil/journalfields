@@ -1,4 +1,6 @@
 // This program reads journalctl json output from stdin
+// Arguments are treated as field selectors.
+// When they are given, only those fields will be shown
 package main
 
 import (
@@ -7,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-systemd/journal"
@@ -49,6 +52,27 @@ func main() {
 		FullTimestamp: true,
 	}
 
+	// Search for help flag
+	for _, arg := range os.Args {
+		if arg == "-h" || arg == "--help" {
+			fmt.Println("Usage: journalctl -o json | journalfields [SELECT_FIELDS_TO_SHOW...]")
+			fmt.Println("JournalFields is a simple program that reprints journalctl log entries with their hidden fields")
+			os.Exit(0)
+		}
+	}
+
+	// Grab/parse selected fields to show from arguments
+	var showFields []string
+	if len(os.Args) > 1 {
+		// Fields are uppercase only, so might as well just fix any given
+		// lowecase fields
+		showFields = make([]string, len(os.Args)-1)
+		for i := 1; i < len(os.Args); i++ {
+			showFields[i-1] = strings.ToUpper(os.Args[i])
+		}
+	}
+
+	// Start processing log entries
 	lines := bufio.NewScanner(os.Stdin)
 	for lines.Scan() {
 		var jFields map[string]interface{} // could be bytes
@@ -76,17 +100,25 @@ func main() {
 		timestamp := usToTime(timestampUs)
 
 		lFields := make(logrus.Fields)
-		for k, v := range jFields {
+		if showFields == nil {
+			// Show default fields
+			for k, v := range jFields {
 
-			if len(k) > 0 && k[0] == '_' {
-				continue
+				if len(k) > 0 && k[0] == '_' {
+					continue
+				}
+
+				if isIn(k, ignoredFields[:]) {
+					continue
+				}
+
+				lFields[k] = v
 			}
-
-			if isIn(k, ignoredFields[:]) {
-				continue
+		} else {
+			// Only show select fields
+			for _, k := range showFields {
+				lFields[k] = jFields[k]
 			}
-
-			lFields[k] = v
 		}
 
 		// We need to link the logentry to a real Logger to allow checking
