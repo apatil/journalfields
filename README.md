@@ -90,7 +90,7 @@ You could do the following:
 journalctlf -u lorawan DEVEUI=1122334455667788 -- DEVEUI APPID
 ```
 
-## Filter by field across multiple service using the wrapper script
+## Filter by field across multiple services
 
 Journalctl even allows you to filter by a given set of fields across all
 logged content (from all services).
@@ -100,9 +100,14 @@ in their logged messages.
 By simply dropping the `-u lorawan` from the previous use case, you can
 search for all log entries that have the `DEVEUI` set to `1122334455667788`.
 
-You could do the following:
+You could do the following with the wrapper script:
 ```bash
 journalctlf DEVEUI=1122334455667788 -- DEVEUI APPID
+```
+
+Or, without the wrapper script:
+```bash
+journalctl -o json DEVEUI=1122334455667788 | journalfields DEVEUI APPID
 ```
 
 # Using this tool in your workflow
