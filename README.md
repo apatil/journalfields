@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/linux4life798/journalfields.svg?branch=master)](https://travis-ci.com/linux4life798/journalfields)
+
 # JournalFields
 This utility pretty prints journald messages with extra
 [fields][journald-fields] inline.
